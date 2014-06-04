@@ -10,14 +10,14 @@ import Control.Applicative
 import Control.Monad
 
 -- | Implementation derived from Petr Pudlák's answer on StackOverflow
---   http://stackoverflow.com/a/18898822/230050
+--   <http://stackoverflow.com/a/18898822/230050>
 sequencePool :: Traversable t => Int -> t (IO a) -> IO (t a)
 sequencePool max xs = do
     sem <- new max
     runConcurrently $ traverse (Concurrently . with sem) xs
     
 -- | Implementation copied from Petr Pudlák's answer on StackOverflow
---   http://stackoverflow.com/a/18898822/230050
+--   <http://stackoverflow.com/a/18898822/230050>
 mapPool :: Traversable t => Int -> (a -> IO b) -> t a -> IO (t b)
 mapPool max f xs = do
     sem <- new max
@@ -26,18 +26,18 @@ mapPool max f xs = do
 sequenceConcurrently :: Traversable t => t (IO a) -> IO (t a)
 sequenceConcurrently = runConcurrently . traverse Concurrently
 
--- | Create an Async a and pass it to itself.
+-- | Create an 'Async' and pass it to itself.
 fixAsync :: (Async a -> IO a) -> IO (Async a)
 fixAsync f = mdo 
     this <- async $ f this
     return this
 
--- | Create an async that is link to a parent. If the parent
+-- | Create an async that is linked to a parent. If the parent
 --   dies so does this async
 withParent :: Async a -> IO b -> IO (Async b)
 withParent parent act = async $ link parent >> act
 
--- | Is like Concurrently but includes a sequential monad instance
+-- | 'Promise' is like 'Concurrently' but includes a sequential monad instance
 newtype Promise a = Promise { unPromise :: IO a }
   deriving (Functor)
 
