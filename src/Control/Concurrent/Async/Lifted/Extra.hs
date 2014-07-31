@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
 module Control.Concurrent.Async.Lifted.Extra where
 import Control.Concurrent.Async.Lifted
 import Control.Concurrent.STM
@@ -40,9 +41,41 @@ sequenceConcurrently = runConcurrently . traverse Concurrently
 
 -- | Create an 'Async' and pass it to itself.
 fixAsync :: (MonadFix m, MonadBaseControl IO m) 
-            => (Async (StM m a) -> m a) -> m (Async (StM m a))
+         => (Async (StM m a) -> m a) -> m (Async (StM m a))
 fixAsync f = mdo 
     this <- async $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkOS' internally.
+fixAsyncBound :: (MonadFix m, MonadBaseControl IO m) 
+              => (Async (StM m a) -> m a) -> m (Async (StM m a))
+fixAsyncBound f = mdo 
+    this <- asyncBound $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkOn' internally.
+fixAsyncOn :: (MonadFix m, MonadBaseControl IO m) 
+           => Int -> (Async (StM m a) -> m a) -> m (Async (StM m a))
+fixAsyncOn cpu f = mdo 
+    this <- asyncOn cpu $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkIOWithUnmask' internally.
+-- The child thread is passed a function that can be used to unmask asynchronous exceptions.
+fixAsyncWithUnmask :: (MonadFix m, MonadBaseControl IO m) 
+                   => (Async (StM m a) -> (forall b . m b -> m b) -> m a) 
+                   -> m (Async (StM m a))
+fixAsyncWithUnmask f = mdo 
+    this <- asyncWithUnmask $ f this
+    return this
+
+-- | Like 'fixAsyncOn' but using 'forkOnWithUnmask' internally.
+-- The child thread is passed a function that can be used to unmask asynchronous exceptions.
+fixAsyncOnWithUnmask :: (MonadFix m, MonadBaseControl IO m) 
+                     => Int -> (Async (StM m a) -> (forall b . m b -> m b) -> m a) 
+                     -> m (Async (StM m a))
+fixAsyncOnWithUnmask cpu f = mdo 
+    this <- asyncWithUnmask $ f this
     return this
 
 -- | Create an async that is linked to a parent. If the parent

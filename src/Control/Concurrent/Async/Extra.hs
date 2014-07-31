@@ -1,5 +1,6 @@
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE RankNTypes #-}
 module Control.Concurrent.Async.Extra where
 import Control.Concurrent.Async
 import Control.Concurrent.STM
@@ -30,6 +31,32 @@ sequenceConcurrently = runConcurrently . traverse Concurrently
 fixAsync :: (Async a -> IO a) -> IO (Async a)
 fixAsync f = mdo 
     this <- async $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkOS' internally.
+fixAsyncBound :: (Async a -> IO a) -> IO (Async a)
+fixAsyncBound f = mdo 
+    this <- asyncBound $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkOn' internally.
+fixAsyncOn :: Int -> (Async a -> IO a) -> IO (Async a)
+fixAsyncOn cpu f = mdo 
+    this <- asyncOn cpu $ f this
+    return this
+
+-- | Like 'fixAsync' but using 'forkIOWithUnmask' internally.
+-- The child thread is passed a function that can be used to unmask asynchronous exceptions.
+fixAsyncWithUnmask :: (Async a -> (forall b . IO b -> IO b) -> IO a) -> IO (Async a)
+fixAsyncWithUnmask f = mdo 
+    this <- asyncWithUnmask $ f this
+    return this
+
+-- | Like 'fixAsyncOn' but using 'forkOnWithUnmask' internally.
+-- The child thread is passed a function that can be used to unmask asynchronous exceptions.
+fixAsyncOnWithUnmask :: Int -> (Async a -> (forall b . IO b -> IO b) -> IO a) -> IO (Async a)
+fixAsyncOnWithUnmask cpu f = mdo 
+    this <- asyncWithUnmask $ f this
     return this
 
 -- | Create an async that is linked to a parent. If the parent
