@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                async-extras
-version:             0.1.2.0
+version:             0.1.3.0
 synopsis:            Extra Utilities for the Async Library
 -- description:         
 homepage:            http://github.com/jfischoff/async-extras
