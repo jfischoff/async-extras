@@ -15,6 +15,7 @@ import Control.Monad
 import Control.Monad.Trans.Control
 import Control.Monad.Fix
 import Control.Monad.Base
+import Data.Foldable (Foldable, traverse_)
 
 -- | Implementation derived from Petr Pudlák's answer on StackOverflow
 --   <http://stackoverflow.com/a/18898822/230050>
@@ -38,6 +39,12 @@ mapPool max f xs = do
 sequenceConcurrently :: (Traversable t, MonadBaseControl IO m) 
                      => t (m a) -> m (t a)
 sequenceConcurrently = runConcurrently . traverse Concurrently
+
+mapConcurrently_ :: (Foldable t, MonadBaseControl IO m) => (a -> m b) -> t a -> m ()
+mapConcurrently_ f = runConcurrently . traverse_ (Concurrently . f)
+
+forConcurrently_ :: (Foldable t, MonadBaseControl IO m) => t a -> (a -> m b) -> m ()
+forConcurrently_ = flip mapConcurrently_
 
 -- | Create an 'Async' and pass it to itself.
 fixAsync :: (MonadFix m, MonadBaseControl IO m) 
@@ -81,28 +88,6 @@ fixAsyncOnWithUnmask cpu f = mdo
 -- | Create an async that is linked to a parent. If the parent
 --   dies so does this async
 withParent :: MonadBaseControl IO m 
-           => Async (StM m a) -> m b -> m (Async (StM m b))
+           => Async a -> m b -> m (Async (StM m b))
 withParent parent act = async $ link parent >> act
 
-
--- | 'Promise' is like 'Concurrently' but includes a sequential monad instance
-newtype Promise (b :: * -> *) m a = Promise { unPromise :: m a }
-
-instance (b ~ IO, Functor m) => Functor (Promise b m) where
-  fmap f (Promise a) = Promise $ f <$> a
-
-instance (b ~ IO, MonadBaseControl b m) => Applicative (Promise b m) where
-  pure = Promise . return
-  Promise f <*> Promise x = Promise $ uncurry ($) <$> concurrently f x
-  
-instance (b ~ IO, MonadBaseControl b m) => Alternative (Promise b m) where
-  empty = Promise $ liftBaseWith . const $ forever (threadDelay maxBound)
-  Promise x <|> Promise y = Promise $ either id id <$> race x y
-
-instance (b ~ IO, MonadBaseControl b m) => Monad (Promise b m) where
-  return = pure
-  Promise m >>= f = Promise $ async m >>= wait >>= unPromise . f 
-
-instance (b ~ IO, MonadBaseControl b m) => MonadPlus (Promise b m) where
-  mzero = empty
-  mplus = (<|>)

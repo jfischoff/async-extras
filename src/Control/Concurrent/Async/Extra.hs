@@ -7,6 +7,7 @@ import Control.Concurrent.STM
 import Control.Concurrent
 import Control.Concurrent.MSem (new, with)
 import Data.Traversable 
+import Data.Foldable (Foldable, traverse_)
 import Control.Applicative
 import Control.Monad
 
@@ -26,6 +27,12 @@ mapPool max f xs = do
     
 sequenceConcurrently :: Traversable t => t (IO a) -> IO (t a)
 sequenceConcurrently = runConcurrently . traverse Concurrently
+
+mapConcurrently_ :: Foldable t => (a -> IO b) -> t a -> IO ()
+mapConcurrently_ f = runConcurrently . traverse_ (Concurrently . f)
+
+forConcurrently_ :: Foldable t => t a -> (a -> IO b) -> IO ()
+forConcurrently_ = flip mapConcurrently_
 
 -- | Create an 'Async' and pass it to itself.
 fixAsync :: (Async a -> IO a) -> IO (Async a)
