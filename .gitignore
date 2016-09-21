@@ -48,3 +48,4 @@ dist
 tags
 *.prof
 *.eventlog
+.stack-work
