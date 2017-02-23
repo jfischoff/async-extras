@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -40,8 +41,10 @@ sequenceConcurrently :: (Traversable t, MonadBaseControl IO m)
                      => t (m a) -> m (t a)
 sequenceConcurrently = runConcurrently . traverse Concurrently
 
+#if !MIN_VERSION_lifted_async(0,9,1)
 mapConcurrently_ :: (Foldable t, MonadBaseControl IO m) => (a -> m b) -> t a -> m ()
 mapConcurrently_ f = runConcurrently . traverse_ (Concurrently . f)
+#endif
 
 forConcurrently_ :: (Foldable t, MonadBaseControl IO m) => t a -> (a -> m b) -> m ()
 forConcurrently_ = flip mapConcurrently_

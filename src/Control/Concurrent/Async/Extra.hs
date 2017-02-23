@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RecursiveDo #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
@@ -28,8 +29,10 @@ mapPool max f xs = do
 sequenceConcurrently :: Traversable t => t (IO a) -> IO (t a)
 sequenceConcurrently = runConcurrently . traverse Concurrently
 
+#if !MIN_VERSION_async(2,1,1)
 mapConcurrently_ :: Foldable t => (a -> IO b) -> t a -> IO ()
 mapConcurrently_ f = runConcurrently . traverse_ (Concurrently . f)
+#endif
 
 forConcurrently_ :: Foldable t => t a -> (a -> IO b) -> IO ()
 forConcurrently_ = flip mapConcurrently_
